@@ -4,12 +4,17 @@ Implementation for Bot1
 '''
 import random
 from collections import deque
+from colorama import init, Back, Style
+init(autoreset=True)
 
 #Goal of Bot1 is to find the leak
 #In order to win, Bot1 must make sure to enter a cell that is considered "leaked"
 
 DIRECTIONS = [0, 1, 0, -1, 0]
 D = 50#Set dimensions to 50
+
+potentialLeakset = open_cells.copy()
+
 
 def has_one_open_neighbor(ship, r, c):#This is basically saying that the cell has exactly one open neighbor
     num_open_neighbors = 0
@@ -66,12 +71,15 @@ def create_ship(ship, blocked_one_window_cells, open_cells):
         deadends.remove((deadend_x, deadend_y))
 
 
-def search(ship, curr_x, curr_y, goal, leakSet):
-    k = 0
+def search(ship, curr_x, curr_y, goal, open_cells, D):
+    kmax = (D/2)-1
+    
+    while k % 2 == 0 or k < 1 or k > kmax:#makes sure that k is odd
+        k =random.randint(0,kmax)#0-49
         
-    while k % 2 == 0 or k < 1:#makes sure that k is odd
-        k =random.randint(0,D-1)#0-49
-
+    
+    leakSet = set()
+    
     temp_x = curr_x-k#-1
     length = 2*k+1
 
@@ -84,7 +92,7 @@ def search(ship, curr_x, curr_y, goal, leakSet):
                 temp_y += 1
 
             elif (temp_x, temp_y) == goal:
-                return leakSet
+                return
 
             else:
                 leakSet.add((temp_x, temp_y))
@@ -92,10 +100,12 @@ def search(ship, curr_x, curr_y, goal, leakSet):
 
         temp_x = temp_x+1
 
-    leakSet.clear()#clear the leakset because we did not get the goal
+    for coordinate in leakSet: 
+        potentialLeakset.remove(coordinate)
+    #leakSet.clear()#clear the leakset because we did not get the goal
     return leakSet
 
-def move(ship, start_x, start_y, goal):
+def move(ship, start_x, start_y, goal, D):
     fringe = deque([(start_x, start_y)])
     closed_set = set()
     previous_state = {(start_x, start_y): None}
@@ -112,7 +122,7 @@ def move(ship, start_x, start_y, goal):
         
         leakset = set()
 
-        leakset = search(ship, curr_x, curr_y, goal, leakset)
+        leakset = search(ship, curr_x, curr_y, goal, leakset, D)
 
         if len(leakset) != 0:#if we realize that hey there is a cell in a (2k+1) * (2k+1) square that might have the leak
             for i in range(4):
@@ -155,7 +165,7 @@ def main():
 
     leakcell = random.choice(list(open_cells))# start coordinates for the leak
 
-    path = move(ship, start_x, start_y, leakcell, leakset)
+    path = move(ship, start_x, start_y, leakcell, leakset, D)
 
     
     print(path)
