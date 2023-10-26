@@ -82,134 +82,53 @@ def detect(ship, curr_x, curr_y, leak, potential_leaks, K):
     if found_leak:
         potential_leaks.clear()
         potential_leaks.update(cells_detected)
-        print(potential_leaks)
     else:
         for coordinate in cells_detected:
             potential_leaks.remove(coordinate)
     return potential_leaks, found_leak
 
 
-def bfs(ship, start_x, start_y, goal):
-    fringe = deque([(start_x, start_y)])
-    closed_set = set()
-    previous_state = {(start_x, start_y): None}
+def move(ship, curr_x, curr_y, leak, potential_leaks, K):
+    num_moves = 0
+    visited_cells = set()
+    curr_path = [(curr_x, curr_y)]
+    previous_state = {(curr_x, curr_y): None}
+    while True:
+        potential_leaks, leak_detected = detect(ship, curr_x, curr_y, leak, potential_leaks, K)
+        num_moves += 1
 
-    while fringe:
-        curr_x, curr_y = fringe.popleft()
-        if (curr_x, curr_y) == goal:
-            path, coord = [], (curr_x, curr_y)
-            while coord != None:
-                path.append(coord)
-                coord = previous_state[coord]
+        print(curr_x, curr_y)
+        # check = input()
+        potential_moves = set()
 
-            return path[::-1]
         for i in range(4):
             nx, ny = DIRECTIONS[i] + curr_x, DIRECTIONS[i + 1] + curr_y
-            if nx in [-1, D] or ny in [-1, D] or ship[nx][ny] != 0 or (nx, ny) in closed_set:
-                continue
-            fringe.append((nx, ny))
-            previous_state[(nx, ny)] = (curr_x, curr_y)
-            closed_set.add((nx, ny))
-        closed_set.add((curr_x, curr_y))
-    return None
 
-
-def move(ship, curr_x, curr_y, leak, potential_leaks, K):
-    
-    num_moves = 0
-    
-    visited_cells = set((curr_x, curr_y))
-    
-    
-    justincase_cells = set()
-    
-    while True: 
-        #print(curr_x, curr_y)
-        potential_leaks, found_leak = detect(ship, curr_x, curr_y, leak, potential_leaks, K)
-        ctr = 0
-
-
-        for i in range(4):
-            nx, ny = DIRECTIONS[i] + curr_x, DIRECTIONS[i+1] + curr_y
-            #print("nx ny", (nx,ny))
-            
-            if found_leak:
-                #print("hello")
-                if nx in [-1, D] or ny in [-1, D] or ship[nx][ny] != 0 or (nx, ny) in visited_cells or (nx, ny) not in potential_leaks:
+            if leak_detected:
+                if nx <= -1 or nx >= D or ny <= -1 or ny >= D or ship[nx][ny] != 0 or (
+                        (nx, ny) in visited_cells or (nx, ny) not in potential_leaks or (nx, ny) in curr_path):
                     continue
-                
-                num_moves = num_moves + 1
-                curr_x = nx
-                curr_y = ny
-                
-                print(curr_x, curr_y)
-                
-                if (curr_x, curr_y) == leak:
+
+                if (nx, ny) == leak:
                     return num_moves
-                
-                visited_cells.add((curr_x, curr_y))
-                break
-                
-            else: 
-                #print("Hello")
-                ctr = ctr + 1
-                justincase_cells.add((nx,ny))
-                
-                if ctr == 4:
-                    # print("Just in case cells", justincase_cells)
-                    # print("hello")
-                    #print("Just in case cells:", justincase_cells)
-                    for cellx, celly in justincase_cells:
-                        if ship[cellx][celly] == 0:
-                            curr_x = cellx
-                            curr_y = celly
-                            num_moves += 1
-                            print((curr_x, curr_y))
-                            visited_cells.add((cellx, celly))
-                            justincase_cells.clear()
-                            #print("Hello")
-                            break
-                    break
-                
-                if nx in [-1, D] or ny in [-1, D] or ship[nx][ny] != 0 or (nx, ny) in visited_cells:
+                potential_moves.add((nx, ny))
+            else:
+                if nx <= -1 or nx >= D or ny <= -1 or ny >= D or ship[nx][ny] != 0 or (nx, ny) in visited_cells or (
+                        (nx, ny) in curr_path):
                     continue
-                
-                num_moves = num_moves + 1
-                curr_x = nx#update curr x 
-                curr_y = ny#update curr y
+                potential_moves.add((nx, ny))
 
-                visited_cells.add((curr_x, curr_y))
-                justincase_cells.clear()
-                print(curr_x, curr_y)
+        if not potential_moves:
+            visited_cells.add((curr_x, curr_y))
+            curr_x, curr_y = previous_state[(curr_x, curr_y)]
+        else:
+            next_x, next_y = random.choice(list(potential_moves))
+            previous_state[(next_x, next_y)] = (curr_x, curr_y)
+            curr_x, curr_y = next_x, next_y
+        num_moves += 1
 
-                break
 
-                
-                # bfs(ship, curr_x, curr_y, leak)
-
-            
-    # leakset = search(ship, curr_x, curr_y, goal, leakset, K)
-    #
-    # if len(leakset) != 0:#if we realize that hey there is a cell in a (2k+1) * (2k+1) square that might have the leak
-    #     for i in range(4):
-    #
-    #         nx, ny = DIRECTIONS[i] + curr_x, DIRECTIONS[i + 1] + curr_y
-    #         if nx in [-1, D] or ny in [-1, D] or ship[nx][ny] != 0 or (nx, ny) in closed_set or (nx, ny) not in leakset:
-    #             continue
-    #         fringe.append((nx, ny))
-    #         previous_state[(nx, ny)] = (curr_x, curr_y)
-    #         closed_set.add((nx, ny))
-    #     closed_set.add((curr_x, curr_y))
-    # else:#if we don't recognize any cell that has leak, then just keep doing the normal thing that Bot1 would do in project1
-    #     for i in range(4):
-    #         nx, ny = DIRECTIONS[i] + curr_x, DIRECTIONS[i + 1] + curr_y
-    #         if nx in [-1, D] or ny in [-1, D] or ship[nx][ny] != 0 or (nx, ny) in closed_set:
-    #             continue
-    #         fringe.append((nx, ny))
-    #         previous_state[(nx, ny)] = (curr_x, curr_y)
-    #         closed_set.add((nx, ny))
-    #     closed_set.add((curr_x, curr_y))
-    # return None
+    return 0
 
 
 def run_bot1():
@@ -228,13 +147,13 @@ def run_bot1():
     print()
     leak_cell = (0,4)
     # leak_cell = random.choice(list(open_cells))
-    potential_leaks = open_cells.copy()
+    potential_leaks = set()
+    # potential_leaks = open_cells.copy()
     for i in range(D):
         for j in range(D):
             if ship[i][j] == 0:
                 potential_leaks.add((i, j))
     num_moves = move(ship, start_x, start_y, leak_cell, potential_leaks, K)
-
     return num_moves
 
 
