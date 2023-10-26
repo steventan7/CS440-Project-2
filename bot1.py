@@ -92,7 +92,7 @@ def move(ship, curr_x, curr_y, leak, potential_leaks, K):
     num_moves = 0
     visited_cells = set()
     curr_path = [(curr_x, curr_y)]
-    previous_state = {(curr_x, curr_y): None}
+
     while True:
         potential_leaks, leak_detected = detect(ship, curr_x, curr_y, leak, potential_leaks, K)
         num_moves += 1
@@ -120,11 +120,10 @@ def move(ship, curr_x, curr_y, leak, potential_leaks, K):
 
         if not potential_moves:
             visited_cells.add((curr_x, curr_y))
-            curr_x, curr_y = previous_state[(curr_x, curr_y)]
+            curr_x, curr_y = curr_path.pop()
         else:
-            next_x, next_y = random.choice(list(potential_moves))
-            previous_state[(next_x, next_y)] = (curr_x, curr_y)
-            curr_x, curr_y = next_x, next_y
+            curr_x, curr_y  = random.choice(list(potential_moves))
+            curr_path.append((curr_x, curr_y))
         num_moves += 1
 
 
