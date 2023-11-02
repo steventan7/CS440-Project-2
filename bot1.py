@@ -1,14 +1,14 @@
 '''
 Implementation for Bot1
-@author Steven Tan, Ajay Anand
+@author Steven Tan
 '''
 import random
-from collections import deque
-# from colorama import init, Back, Style
-# init(autoreset=True)
+from colorama import init, Back, Style
+from collections import deque, defaultdict
+init(autoreset=True)
 
 DIRECTIONS = [0, 1, 0, -1, 0]
-D = 5
+D = 50
 
 
 # This function checks if a cell has exactly one open neighbor
@@ -67,12 +67,66 @@ def create_ship(ship, blocked_one_window_cells, open_cells):
         deadends.remove((deadend_x, deadend_y))
 
 
+# Performs a BFS implementation that returns the path starting from the bot's current location to the button
+def bfs(ship, start_x, start_y, goal):
+    fringe = deque([(start_x, start_y)])
+    closed_set = set()
+    previous_state = {(start_x, start_y): None}
+
+    while fringe:
+        curr_x, curr_y = fringe.popleft()
+        if (curr_x, curr_y) == goal:
+            path, coord = [], (curr_x, curr_y)
+            while coord != None:
+                path.append(coord)
+                coord = previous_state[coord]
+            return len(path)
+        for i in range(4):
+            nx, ny = DIRECTIONS[i] + curr_x, DIRECTIONS[i + 1] + curr_y
+            if nx in [-1, D] or ny in [-1, D] or ship[nx][ny] != 0 or (nx, ny) in closed_set:
+                continue
+            fringe.append((nx, ny))
+            previous_state[(nx, ny)] = (curr_x, curr_y)
+            closed_set.add((nx, ny))
+        closed_set.add((curr_x, curr_y))
+    return 0
+
+
+# Used to visualize the difference components of the game
+def visualize_grid(ship, start, goal, bot):
+    for i in range(D):
+        curr_row = ""
+        for j in range(D):
+            if (i, j) == start:
+                curr_row += (Style.RESET_ALL + Back.BLUE + Style.BRIGHT + "S_")
+            elif (i, j) == goal:
+                curr_row += (Style.RESET_ALL + Back.LIGHTBLACK_EX + Style.BRIGHT + "L_")
+            elif (i, j) == bot:
+                curr_row += (Style.RESET_ALL + Back.GREEN + Style.BRIGHT + "B_")
+            elif ship[i][j] == 0:
+                curr_row += (Style.RESET_ALL + Back.YELLOW + "__")
+            elif ship[i][j] == 1:
+                curr_row += (Style.RESET_ALL + Back.WHITE + "__")
+            else:
+                curr_row += (Style.RESET_ALL + "__")
+        print(curr_row)
+    print()
+    print()
+
+
+# Determines whether a leak exists by iterating over a (2K + 1)(2K + 1) detection over the current location of the bot
 def detect(ship, curr_x, curr_y, leak, potential_leaks, K):
     found_leak = False
     cells_detected = set()
+
+    if (curr_x, curr_y) == leak:
+        return {(curr_x, curr_y)}, True
+
     for r in range(curr_x - K, curr_x + K + 1):
+        if r <= -1 or r >= D:
+            continue
         for c in range(curr_y - K, curr_y + K + 1):
-            if r <= -1 or r >= D or c <= -1 or c >= D or ship[r][c] == 1 or (r, c) not in potential_leaks:
+            if c <= -1 or c >= D or ship[r][c] == 1 or (r, c) not in potential_leaks:
                 continue
 
             if (r, c) == leak:
@@ -88,74 +142,103 @@ def detect(ship, curr_x, curr_y, leak, potential_leaks, K):
     return potential_leaks, found_leak
 
 
-def move(ship, curr_x, curr_y, leak, potential_leaks, K):
+'''
+If the sense action is performed and a leak is not found, then the cells outside the detection are checked to
+determine the closest cells to the current location of the bot that potentially contain the leak
+'''
+def closest_moves_leak_not_found(ship, curr_x, curr_y, potential_leaks, K):
+    curr_loop = 1
+    distance_map = defaultdict(list)
+    while not distance_map:
+        for i in range(curr_y - K - curr_loop, curr_y + K + curr_loop + 1):
+            if i <= -1 or i >= D:
+                continue
+            top, bottom = curr_x - K - curr_loop, curr_x + K + curr_loop
+            if -1 < top < D and ship[top][i] == 0 and (top, i) in potential_leaks:
+                distance_map[bfs(ship, top, i, (curr_x, curr_y))].append((top, i))
+            if -1 < bottom < D and ship[bottom][i] == 0 and (bottom, i) in potential_leaks:
+                distance_map[bfs(ship, bottom, i, (curr_x, curr_y))].append((bottom, i))
+        for i in range(curr_x - K + 1 - curr_loop, curr_x + K + curr_loop - 1):
+            if i <= -1 or i >= D:
+                continue
+            left, right = curr_y - K - curr_loop, curr_y + K + curr_loop
+            if -1 < left < D and ship[i][left] == 0 and (i, left) in potential_leaks:
+                distance_map[bfs(ship, i, left, (curr_x, curr_y))].append((i, left))
+            if -1 < right < D and ship[i][right] == 0 and (i, right) in potential_leaks:
+                distance_map[bfs(ship, i, right, (curr_x, curr_y))].append((i, right))
+        curr_loop += 1
+    return distance_map
+
+'''
+If the sense action is performed and a leak is found, then the cells inside the detection square are checked to
+determine the cells closest to the current location of the bot that could potentially contain the leak
+'''
+def closest_moves_leak_found(ship, curr_x, curr_y, potential_leaks, K):
+    distance_map = defaultdict(list)
+    for r in range(curr_x - K, curr_x + K + 1):
+        if r <= -1 or r >= D:
+            continue
+        for c in range(curr_y - K, curr_y + K + 1):
+            if c <= -1 or c >= D or ship[r][c] == 1 or (r, c) not in potential_leaks:
+                continue
+            distance_map[bfs(ship, r, c, (curr_x, curr_y))].append((r, c))
+    return distance_map
+
+
+'''
+Runs a simulation of the bot's actions until the leak is found. After each time the bot moves, it runs the sense action
+and follows the guidelines as to whether a leak is found or not. Bfs is used to determine the length of the path of 
+the bot's current location and the next location is must travel.
+'''
+def simulate (ship, start_x, start_y, leak, potential_leaks, K):
     num_moves = 0
-    visited_cells = set()
-    curr_path = [(curr_x, curr_y)]
+    curr_location = (start_x, start_y)
 
-    while True:
-        potential_leaks, leak_detected = detect(ship, curr_x, curr_y, leak, potential_leaks, K)
+    while curr_location != leak:
+        if curr_location in potential_leaks:
+            potential_leaks.remove(curr_location)
+        potential_leaks, leak_detected = detect(ship, curr_location[0], curr_location[1], leak, potential_leaks, K)
         num_moves += 1
 
-        print(curr_x, curr_y)
+        # visualize_grid(ship, curr_location, leak, (curr_x, curr_y))
         # check = input()
-        potential_moves = set()
 
-        for i in range(4):
-            nx, ny = DIRECTIONS[i] + curr_x, DIRECTIONS[i + 1] + curr_y
-
-            if leak_detected:
-                if nx <= -1 or nx >= D or ny <= -1 or ny >= D or ship[nx][ny] != 0 or (
-                        (nx, ny) in visited_cells or (nx, ny) not in potential_leaks or (nx, ny) in curr_path):
-                    continue
-
-                if (nx, ny) == leak:
-                    return num_moves
-                potential_moves.add((nx, ny))
-            else:
-                if nx <= -1 or nx >= D or ny <= -1 or ny >= D or ship[nx][ny] != 0 or (nx, ny) in visited_cells or (
-                        (nx, ny) in curr_path):
-                    continue
-                potential_moves.add((nx, ny))
-
-        if not potential_moves:
-            visited_cells.add((curr_x, curr_y))
-            curr_x, curr_y = curr_path.pop()
+        if not leak_detected:
+            distance_map = closest_moves_leak_not_found(ship, curr_location[0], curr_location[1], potential_leaks, K)
         else:
-            curr_x, curr_y  = random.choice(list(potential_moves))
-            curr_path.append((curr_x, curr_y))
-        num_moves += 1
+            distance_map = closest_moves_leak_found(ship, curr_location[0], curr_location[1], potential_leaks, K)
+
+        closest_moves = distance_map[min(distance_map.keys())]
+        next_location = random.choice(closest_moves) if len(closest_moves) > 1 else closest_moves[0]
+        num_moves += bfs(ship, next_location[0], next_location[1], curr_location)
+        curr_location = next_location
+    return num_moves
 
 
-    return 0
-
-
+'''
+Sets up the location of the robot's starting point, the button, the leak, and the ship itself. It first calls detect
+on the current location of the bot and then randomly assigns the location of the leak, just to ensure that the location 
+of the leak is not within the first sense action. It then runs the game for Bot 1. It returns the total number of moves 
+computed to find where the leak is.
+'''
 def run_bot1():
-    # ship = [[1 for i in range(D)] for j in range(D)]
-    # start_x, start_y = random.randint(0, D - 1), random.randint(0, D - 1)   # start coordinates for the bot
-    # ship[start_x][start_y], open_cells = 0, set()
-    # blocked_one_window_cells = {(start_x, start_y)}
-    # create_ship(ship, blocked_one_window_cells, open_cells)
-    ship = [[1,1,0,0,0], [0,0,0,0,0], [0,1,0,0,1], [0,0,0,0,0], [0,0,0,0,0]]
-    start_x, start_y = 3, 3
-    open_cells = set()
-    K = (D // 2) - 1
+    ship = [[1 for i in range(D)] for j in range(D)]
+    start_x, start_y = random.randint(0, D - 1), random.randint(0, D - 1)   # start coordinates for the bot
+    ship[start_x][start_y], open_cells = 0, set()
+    blocked_one_window_cells = {(start_x, start_y)}
+    create_ship(ship, blocked_one_window_cells, open_cells)
 
-    for i in range(D):
-        print(ship[i])
-    print()
-    leak_cell = (0,4)
-    # leak_cell = random.choice(list(open_cells))
-    potential_leaks = set()
-    # potential_leaks = open_cells.copy()
-    for i in range(D):
-        for j in range(D):
-            if ship[i][j] == 0:
-                potential_leaks.add((i, j))
-    num_moves = move(ship, start_x, start_y, leak_cell, potential_leaks, K)
+    K = ((D // 2 - 1) + 1) // 2
+    potential_leaks = open_cells.copy()
+    detect(ship, start_x, start_y, (-1, -1), potential_leaks, K)
+    leak_cell = random.choice(list(potential_leaks))
+    num_moves = simulate(ship, start_x, start_y, leak_cell, potential_leaks, K)
     return num_moves
 
 
 if __name__ == '__main__':
     total_moves = 0
-    print(run_bot1())
+    for i in range(100):
+        print("Trial", i, "completed")
+        total_moves += run_bot1()
+    print(total_moves / 100)
