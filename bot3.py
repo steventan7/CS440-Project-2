@@ -85,14 +85,14 @@ def probIsBeep(ship, curr_x, curr_y, potential_leaks, leak, probArray):#probabil
     # alpha = random.uniform(0,1)#returns a float between 0 and 1(T.A. said it must be between 0 and 1)
     dsteps = minSteps(ship, curr_x, curr_y, leak)#dsteps
     # print("Dsteps", dsteps)
-    probLeakinJ = probArray[curr_x][curr_y]
+    probLeakinJ = 1/len(potential_leaks)
     probbeepinigivenleakinj= math.e ** ((-1)*alpha*(dsteps-1))
     probbeepini = 0.0
     for i in range(D):
         for j in range(D):
             if (i,j) in potential_leaks:
                 dsteps = minSteps(ship, i, j, leak)
-                probbeepini += probArray[i][j] * (math.e ** ((-1)*alpha*(dsteps-1)))
+                probbeepini += (1/len(potential_leaks)) * (math.e ** ((-1)*alpha*(dsteps-1)))
     
     prob = probLeakinJ*probbeepinigivenleakinj / probbeepini
     return prob
@@ -101,7 +101,7 @@ def probNoBeep(ship, curr_x, curr_y, potential_leaks, leak, probArray):#probabil
     # alpha = random.uniform(0,1)#returns a float between 0 and 1(T.A. said it must be between 0 and 1)
     dsteps = minSteps(ship, curr_x, curr_y, leak)#dsteps
     
-    probLeakinJ = probArray[curr_x][curr_y]
+    probLeakinJ = 1/len(potential_leaks)
     probnotBeepinigivenleakincellj = 1-(math.e ** ((-1)*alpha*(dsteps-1)))
     
     probnoBeepini = 0.0
@@ -110,7 +110,7 @@ def probNoBeep(ship, curr_x, curr_y, potential_leaks, leak, probArray):#probabil
         for j in range(D):
             if (i,j) in potential_leaks:
                 dsteps = minSteps(ship, i, j, leak)
-                probnoBeepini += probArray[i][j] * 1-(math.e ** ((-1)*alpha*(dsteps-1)))
+                probnoBeepini += (1/len(potential_leaks)) * 1-(math.e ** ((-1)*alpha*(dsteps-1)))
     
     prob = probLeakinJ*probnotBeepinigivenleakincellj / probnoBeepini
     return prob
@@ -278,7 +278,7 @@ def run_bot1():
     for i in range(D):
         print(ship[i])
     print()
-    leak_cell = (2,2)
+    leak_cell = (4,2)
     # leak_cell = random.choice(list(open_cells))
     potential_leaks = open_cells.copy()
     # print("Potential Leaks", potential_leaks)
