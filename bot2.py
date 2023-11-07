@@ -227,7 +227,7 @@ def simulate (ship, start_x, start_y, leak, potential_leaks, K):
         potential_leaks, leak_detected = detect(ship, curr_location[0], curr_location[1], leak, potential_leaks, K)
         num_moves += 1
 
-        # visualize_grid(ship, curr_location, leak, (curr_x, curr_y))
+        # visualize_grid(ship, curr_location, leak, curr_location)
         # check = input()
 
         if not leak_detected:
@@ -242,10 +242,13 @@ def simulate (ship, start_x, start_y, leak, potential_leaks, K):
 
         closest_moves = distance_map[min(distance_map.keys())]
         next_location = random.choice(closest_moves) if len(closest_moves) > 1 else closest_moves[0]
+        print(next_location)
 
-        while (len(closest_moves) > 1 and (next_location[0] + K >= D or next_location[0] - K < 0 or next_location[1] + K >- D or next_location[1] - K < 0)):
+        while (len(closest_moves) > 1 and (next_location[0] + K >= D or next_location[0] - K < 0 or next_location[1] + K >= D or next_location[1] - K < 0)):
                 closest_moves.remove(next_location)
                 next_location = random.choice(closest_moves)
+
+        print(next_location)
 
         num_moves += bfs(ship, next_location[0], next_location[1], curr_location)
         curr_location = next_location
@@ -266,6 +269,9 @@ def run_bot2():
     create_ship(ship, blocked_one_window_cells, open_cells)
 
     K = ((D // 2 - 1) + 1) // 2
+    print("K is ")
+    print(K)
+    print("____________")
     potential_leaks = open_cells.copy()
     detect(ship, start_x, start_y, (-1, -1), potential_leaks, K)
     leak_cell = random.choice(list(potential_leaks))
@@ -275,7 +281,7 @@ def run_bot2():
 
 if __name__ == '__main__':
     total_moves = 0
-    for i in range(100):
+    for i in range(20):
         print("Trial", i, "completed")
         total_moves += run_bot2()
-    print(total_moves / 100)
+    print(total_moves / 20)

@@ -229,6 +229,9 @@ def run_bot1():
     create_ship(ship, blocked_one_window_cells, open_cells)
 
     K = ((D // 2 - 1) + 1) // 2
+    print("K is ")
+    print(K)
+    print("____________")
     potential_leaks = open_cells.copy()
     detect(ship, start_x, start_y, (-1, -1), potential_leaks, K)
     leak_cell = random.choice(list(potential_leaks))
