@@ -70,49 +70,84 @@ def create_ship(ship, blocked_one_window_cells, open_cells):
         deadends.remove((deadend_x, deadend_y))
 
 
-def minSteps(ship, curr_x, curr_y, leak):#DO NOT IGNORE BLOCKED CELLS
+
+def minStepsLeak(ship, curr_x, curr_y, leak):# to leak
     
     finalX = abs(leak[0] - curr_x)
     finalY = abs(leak[1]-curr_y)
     
     final = finalX + finalY
     return final
+
+def minStepsBot(bot_x, bot_y, curr_x, curr_y):# to bot
+     finalX = abs(bot_x - curr_x)
+     finalY = abs(bot_y - curr_y)
+     
+     final = finalX + finalY
+     
+     return final
     
-    
+def bfs(ship, start_x, start_y, goal):
+    fringe = deque([(start_x, start_y)])
+    closed_set = set()
+    previous_state = {(start_x, start_y): None}
+
+    while fringe:
+        curr_x, curr_y = fringe.popleft()
+        if (curr_x, curr_y) == goal:
+            path, coord = [], (curr_x, curr_y)
+            while coord != None:
+                path.append(coord)
+                coord = previous_state[coord]
+
+            return path[::-1]
+        for i in range(4):
+            nx, ny = DIRECTIONS[i] + curr_x, DIRECTIONS[i + 1] + curr_y
+            if nx in [-1, D] or ny in [-1, D] or ship[nx][ny] != 0 or (nx, ny) in closed_set:
+                continue
+            fringe.append((nx, ny))
+            previous_state[(nx, ny)] = (curr_x, curr_y)
+            closed_set.add((nx, ny))
+        closed_set.add((curr_x, curr_y))
+    return None
     
 
-def probIsBeep(ship, curr_x, curr_y, potential_leaks, leak, probArray):#probability that leak in j given that beep in cell i
+def probIsBeep(ship, bot_x, bot_y, cellx, celly, potential_leaks, leak, probArray):#probability that leak in j given that beep in cell i
     # alpha = random.uniform(0,1)#returns a float between 0 and 1(T.A. said it must be between 0 and 1)
-    dsteps = minSteps(ship, curr_x, curr_y, leak)#dsteps
+    
+    dsteps = minStepsBot(bot_x, bot_y, cellx, celly)#dsteps
     # print("Dsteps", dsteps)
-    probLeakinJ = probArray[curr_x][curr_y]
+    probLeakinJ = probArray[cellx][celly]
     probbeepinigivenleakinj = (math.e) ** ((-1)*alpha*(dsteps-1))
     probbeepini = 0.0
     for i in range(D):
         for j in range(D):
             if (i,j) in potential_leaks:
-                dsteps = minSteps(ship, i, j, leak)
-                probbeepini += (1/len(potential_leaks)) * (math.e ** ((-1)*alpha*(dsteps-1)))
+                dsteps = minStepsBot(bot_x, bot_y, i,j)
+                probbeepini += probArray[i][j] * (math.e ** ((-1)*alpha*(dsteps-1)))
     
-    prob = probLeakinJ*probbeepinigivenleakinj / probbeepini
+    prob = (probLeakinJ*probbeepinigivenleakinj) / probbeepini
     return prob
 
-def probNoBeep(ship, curr_x, curr_y, potential_leaks, leak, probArray):#probability that leak in j given that no beep in cell i
+def probNoBeep(ship, bot_x, bot_y, cellx, celly, potential_leaks, leak, probArray):#probability that leak in j given that no beep in cell i
     # alpha = random.uniform(0,1)#returns a float between 0 and 1(T.A. said it must be between 0 and 1)
-    dsteps = minSteps(ship, curr_x, curr_y, leak)#dsteps
+    dsteps = minStepsBot(bot_x, bot_y, cellx, celly)#dsteps
     
-    probLeakinJ = probArray[curr_x][curr_y]
+    probLeakinJ = probArray[cellx][celly]
     probnotBeepinigivenleakincellj = (1-(math.e ** ((-1)*alpha*(dsteps-1))))
     
+    
     probnoBeepini = 0.0
+    
     
     for i in range(D):
         for j in range(D):
             if (i,j) in potential_leaks:
-                dsteps = minSteps(ship, i, j, leak)
-                probnoBeepini += (1/len(potential_leaks)) * (1-(math.e ** ((-1)*alpha*(dsteps-1))))
+                dsteps = minStepsBot(bot_x, bot_y, i,j)
+                probnoBeepini += probArray[i][j] * (1-(math.e ** ((-1)*alpha*(dsteps-1))))
     
-    prob = probLeakinJ*probnotBeepinigivenleakincellj / probnoBeepini
+    
+    prob = (probLeakinJ*probnotBeepinigivenleakincellj) / probnoBeepini
     return prob
     
 def updateProb(ship, curr_x, curr_y, probArray, potential_leaks):
@@ -121,8 +156,7 @@ def updateProb(ship, curr_x, curr_y, probArray, potential_leaks):
     dem = 0.0
     
     for (i,j) in potential_leaks:
-        if i != curr_x or j != curr_y:
-            dem += probArray[i][j]
+        dem += probArray[i][j]
                 
     # print("Denominator", dem)
                 
@@ -131,26 +165,41 @@ def updateProb(ship, curr_x, curr_y, probArray, potential_leaks):
 def detect(ship, curr_x, curr_y, leak, potential_leaks, K, probArray):
     #returns a float between 0 and 1(T.A. said it must be between 0 and 1)
     
-    dsteps = minSteps(ship, curr_x, curr_y, leak)#dsteps
-    
-    probBeep = (math.e) ** ((-1)*alpha*(dsteps-1))#probability for beep
+    # dsteps = minStepsLeak(ship, curr_x, curr_y, leak)#dsteps
+    probBeep = 0.0
+    for i in range(D):
+        for j in range(D):
+            if (i,j) in potential_leaks:
+                dsteps = minStepsBot(curr_x, curr_y, i,j)
+                probBeep += probArray[i][j] * (math.e ** ((-1)*alpha*(dsteps-1)))
+                
+                
+    # probBeep = (math.e) ** ((-1)*alpha*(dsteps-1))#probability for beep
     num = random.uniform(0,1)
     
     beep = False
     
     if num <= probBeep:
         beep = True
+        
+    probArraySample = [[0 for i in range(D)] for j in range(D)]
+    
     
     if beep:#Probability of Leak Given that there is a beep
+        print("Beep")
         for (nx, ny) in potential_leaks:
-            probArray[nx][ny] = probIsBeep(ship, nx,ny,potential_leaks, leak, probArray)
+            probArraySample[nx][ny] = probIsBeep(ship, curr_x, curr_y, nx,ny,potential_leaks, leak, probArray)
             
             
     else:#Probability of Leak Given that there is not a beep
+        print("No beep")
         for (nx, ny) in potential_leaks:
-            probArray[nx][ny] = probNoBeep(ship, nx, ny, potential_leaks, leak, probArray)
+            probArraySample[nx][ny] = probNoBeep(ship, curr_x, curr_y, nx, ny, potential_leaks, leak, probArray)
 
-    
+    for i in range(D):
+        for j in range(D):
+            if (i,j) in potential_leaks:
+                probArray[i][j] = probArraySample[i][j]
 
 
 def move(ship, curr_x, curr_y, leak, potential_leaks, K, probArray):
@@ -175,13 +224,22 @@ def move(ship, curr_x, curr_y, leak, potential_leaks, K, probArray):
                 probArray[curr_x][curr_y] = 0#We do this because if we don't find the leak cell, we set it to 0
                 # print(potential_leaks)
                 
-                sum = 0.0
-                ctr = 0
+                #sum = 0.0
+                #ctr = 0
+                
+                probArraySample2 = [[0 for i in range(D)] for j in range(D)]
+
                 for (nx,ny) in potential_leaks:
-                    probArray[nx][ny] = updateProb(ship, nx, ny, probArray, potential_leaks)
-                    sum += probArray[nx][ny]
-                    ctr = ctr + 1
+                    probArraySample2[nx][ny] = updateProb(ship, nx, ny, probArray, potential_leaks)
+                    
+                    #sum += probArray[nx][ny]
+                    #ctr = ctr + 1
                     # print(ctr)
+                for i in range(D):
+                    for j in range(D):
+                         if (i,j) in potential_leaks:
+                             probArray[i][j] = probArraySample2[i][j]
+                             
                    
        
         sum = printProbArray(probArray)
@@ -197,48 +255,93 @@ def move(ship, curr_x, curr_y, leak, potential_leaks, K, probArray):
         sum = printProbArray(probArray)
         print("Sum for beep", sum)
         
+        _max = 0
         
-        tempSet = set()
-        for i in range(4):
-            nx, ny = DIRECTIONS[i] + curr_x, DIRECTIONS[i+1] + curr_y
+        endX = 0
+        endY = 0
+        
+        for i in range(D):
+            for j in range(D):
+                if probArray[i][j] > _max:
+                    _max = probArray[i][j]
+                    endX = i
+                    endY = j
+                    
+        
+
+        path = bfs(ship, curr_x, curr_y, (endX,endY))
+        
+        print("Path: ", path)
+        
+        for (cellx,celly) in path:
             
-            if nx in [-1, D] or ny in [-1, D] or ship[nx][ny] != 0:
+
+            if curr_x == cellx and curr_y == celly:#ignore the beginning cell as we already updated
                 continue
             
-            tempSet.add((nx,ny))
-        
-        _max = -1
-        
-        isAll0 = True
-        for (nx,ny) in tempSet: 
-            if probArray[nx][ny] != 0:
-                isAll0 = False
-        
-        # print("Before")
-        # printProbArray(probArray)
-        
-        if isAll0: 
-            # print("Temp", tempSet)
-            # print(isAll0)
+            probArraySample3 = [[0 for i in range(D)] for j in range(D)]
 
-            nx,ny = random.choice(list(tempSet))
-            curr_x = nx
-            curr_y = ny
+            
+            if (cellx, celly) == leak:
+                return num_moves
+            
+            else:
+
+                if probArray[cellx][celly] != 0:
+                    probArray[cellx][celly] = 0
+                    potential_leaks.remove((cellx, celly))
+                    curr_x = cellx
+                    curr_y = celly
+                    for(i,j) in potential_leaks:
+                        probArraySample3[i][j] = updateProb(ship, i, j, probArray, potential_leaks)
+            
+                    for i in range(D):
+                        for j in range(D):
+                            probArray[i][j] = probArraySample3[i][j]
+                    
+            num_moves = num_moves + 1
+                
+                
+        # tempSet = set()
+        # for i in range(4):
+        #     nx, ny = DIRECTIONS[i] + curr_x, DIRECTIONS[i+1] + curr_y
+            
+        #     if nx in [-1, D] or ny in [-1, D] or ship[nx][ny] != 0:
+        #         continue
+            
+        #     tempSet.add((nx,ny))
+        
+        # _max = -1
+        
+        # isAll0 = True
+        # for (nx,ny) in tempSet: 
+        #     if probArray[nx][ny] != 0:
+        #         isAll0 = False
+        
+        # # print("Before")
+        # # printProbArray(probArray)
+        
+        # if isAll0:
+        #     # print("Temp", tempSet)
+        #     # print(isAll0)
+
+        #     nx,ny = random.choice(list(tempSet))
+        #     curr_x = nx
+        #     curr_y = ny
         
             
         
-        else:   
-            for (nx,ny) in tempSet:
-                if probArray[nx][ny] > _max and (nx,ny) not in visited_cells:
-                    _max = probArray[nx][ny]
-                    curr_x = nx
-                    curr_y = ny
+        # else:   
+        #     for (nx,ny) in tempSet:
+        #         if probArray[nx][ny] > _max and (nx,ny) not in visited_cells:
+        #             _max = probArray[nx][ny]
+        #             curr_x = nx
+        #             curr_y = ny
                 
         # print("After")
         # printProbArray(probArray)
 
-        visited_cells.add((curr_x, curr_y))
-        num_moves = num_moves + 1
+        
         
         
 
@@ -295,11 +398,10 @@ def run_bot1():
     for i in range(D):
         print(ship[i])
     print()
-    leak_cell = (2,2)
+    leak_cell = (4,2)
     # leak_cell = random.choice(list(open_cells))
     potential_leaks = open_cells.copy()
     # print("Potential Leaks", potential_leaks)
-    
     
     num_moves = move(ship, start_x, start_y, leak_cell, potential_leaks, K, probArray)
 
