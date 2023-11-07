@@ -159,22 +159,23 @@ def updateProb(ship, curr_x, curr_y, probArray, potential_leaks):
         dem += probArray[i][j]
                 
     # print("Denominator", dem)
-                
+    
+   
     return num/dem
 
 def detect(ship, curr_x, curr_y, leak, potential_leaks, K, probArray):
     #returns a float between 0 and 1(T.A. said it must be between 0 and 1)
     
-    # dsteps = minStepsLeak(ship, curr_x, curr_y, leak)#dsteps
-    probBeep = 0.0
-    for i in range(D):
-        for j in range(D):
-            if (i,j) in potential_leaks:
-                dsteps = minStepsBot(curr_x, curr_y, i,j)
-                probBeep += probArray[i][j] * (math.e ** ((-1)*alpha*(dsteps-1)))
+    dsteps = minStepsLeak(ship, curr_x, curr_y, leak)#dsteps
+    # probBeep = 0.0
+    # for i in range(D):
+    #     for j in range(D):
+    #         if (i,j) in potential_leaks:
+    #             dsteps = minStepsBot(curr_x, curr_y, i,j)
+    #             probBeep += probArray[i][j] * (math.e ** ((-1)*alpha*(dsteps-1)))
                 
                 
-    # probBeep = (math.e) ** ((-1)*alpha*(dsteps-1))#probability for beep
+    probBeep = (math.e) ** ((-1)*alpha*(dsteps-1))#probability for beep
     num = random.uniform(0,1)
     
     beep = False
@@ -398,7 +399,7 @@ def run_bot1():
     for i in range(D):
         print(ship[i])
     print()
-    leak_cell = (4,2)
+    leak_cell = (4,4)
     # leak_cell = random.choice(list(open_cells))
     potential_leaks = open_cells.copy()
     # print("Potential Leaks", potential_leaks)
