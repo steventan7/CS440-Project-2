@@ -242,7 +242,7 @@ def simulate (ship, start_x, start_y, leak, potential_leaks, K):
 
         closest_moves = distance_map[min(distance_map.keys())]
         next_location = random.choice(closest_moves) if len(closest_moves) > 1 else closest_moves[0]
-        print(next_location)
+        # print(next_location)
 
         while (len(closest_moves) > 1 and (next_location[0] + K >= D or next_location[0] - K < 0 or next_location[1] + K >= D or next_location[1] - K < 0)):
                 closest_moves.remove(next_location)
