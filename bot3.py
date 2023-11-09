@@ -365,7 +365,7 @@ def printProbArray(probArray):
     return _sum
         
 
-def run_bot1():
+def run_bot3():
     # ship = [[1 for i in range(D)] for j in range(D)]
     # start_x, start_y = random.randint(0, D - 1), random.randint(0, D - 1)   # start coordinates for the bot
     # ship[start_x][start_y], open_cells = 0, set()
@@ -402,11 +402,13 @@ def run_bot1():
     for i in range(D):
         print(ship[i])
     print()
-    leak_cell = (4,4)
+   
     # leak_cell = random.choice(list(open_cells))
     potential_leaks = open_cells.copy()
     # print("Potential Leaks", potential_leaks)
+    leak_cell = random.choice(list(potential_leaks))
     
+
     num_moves = move(ship, start_x, start_y, leak_cell, potential_leaks, K, probArray)
 
     return num_moves
@@ -414,4 +416,4 @@ def run_bot1():
 
 if __name__ == '__main__':
     total_moves = 0
-    print(run_bot1())
+    print(run_bot3())

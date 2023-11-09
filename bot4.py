@@ -138,7 +138,7 @@ def astar(ship, start_x, start_y, goal, probArray):
                     parent[neighbor] = curr_cell
             
                     prob_factor = D*probArray[nx][ny]
-                    heapq.heappush(pq, (distTo[neighbor] + prob_factor, neighbor))
+                    heapq.heappush(pq, (distTo[neighbor] - prob_factor, neighbor))
 
                     # x_fires, y_fires = 0, 0
                     # for fire_tile in fire_tiles:
@@ -472,11 +472,11 @@ def run_bot4():
     for i in range(D):
         print(ship[i])
     print()
-    leak_cell = (4,4)
+    # leak_cell = (4,4)
     # leak_cell = random.choice(list(open_cells))
     potential_leaks = open_cells.copy()
     # print("Potential Leaks", potential_leaks)
-    
+    leak_cell = random.choice(list(potential_leaks))
     num_moves = move(ship, start_x, start_y, leak_cell, potential_leaks, K, probArray)
 
     return num_moves

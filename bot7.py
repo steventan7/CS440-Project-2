@@ -425,12 +425,14 @@ def run_bot7():
     for i in range(D):
         print(ship[i])
     print()
-    leak_cell1 = (4,4)
-    leak_cell2 = (8,8)
+    
     # leak_cell = random.choice(list(open_cells))
     potential_leaks = open_cells.copy()
     # print("Potential Leaks", potential_leaks)
     
+    leak_cell1, leak_cell2 = random.choice(list(potential_leaks)), random.choice(list(potential_leaks))
+
+
     num_moves = move(ship, start_x, start_y, leak_cell1, leak_cell2, potential_leaks, K, probArray)
 
     return num_moves
