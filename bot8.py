@@ -496,7 +496,7 @@ def detect(ship, bot_position, leak1, leak2, potential_leaks, combination_probs)
     combination_probs = deepcopy(combination_probs_sample)
 
 
-def move(ship, bot_position, leak1, leak2, potential_leaks, K, combination_probs):
+def move(ship, bot_position, leak1, leak2, potential_leaks, combination_probs):
 
     # Extract the starting bot position
     (curr_x, curr_y) = bot_position
@@ -551,6 +551,9 @@ def move(ship, bot_position, leak1, leak2, potential_leaks, K, combination_probs
         for potential_max_cell in potential_leaks:
             marginal_probability = 0
 
+            # For marginal probability example: For P(cell1 containing leak | A), we have to do
+            # P(cell1, cell2 containing leaks) + P(cell1, cell3 containing leaks) + ...
+            # This would be the marginal probability
             for other_cell in potential_leaks:
                 marginal_probability = marginal_probability + combination_probs[(potential_max_cell, other_cell)]
 
@@ -561,6 +564,7 @@ def move(ship, bot_position, leak1, leak2, potential_leaks, K, combination_probs
         # Store the path from the bot to the determined cell
         path = bfs(ship, curr_x, curr_y, max_cell)
         
+        # Print the path
         print("Path: ", path)
         
         # Perform the bot movement and check if any of the cells in the path contain the leak
@@ -652,56 +656,59 @@ def printProbArray(probArray):
     return _sum
         
 
-def run_bot3():
-    # ship = [[1 for i in range(D)] for j in range(D)]
-    # start_x, start_y = random.randint(0, D - 1), random.randint(0, D - 1)   # start coordinates for the bot
-    # ship[start_x][start_y], open_cells = 0, set()
-    # blocked_one_window_cells = {(start_x, start_y)}
-    # create_ship(ship, blocked_one_window_cells, open_cells)
-    ship = [[1,1,0,0,0], [0,0,0,0,0], [0,1,0,0,1], [0,0,0,0,0], [0,0,0,0,0]]
-    start_x, start_y = 0,2
-    open_cells = set()
-    K = (D // 2) - 1
-    
-    
+def run_bot8():
+
+    # Initialize the ship
+    # ship = [[1,1,0,0,0], [0,0,0,0,0], [0,1,0,0,1], [0,0,0,0,0], [0,0,0,0,0]]
+
+    # Initialize the ship
+    ship = [[1 for i in range(D)] for j in range(D)]
+    start_x, start_y = random.randint(0, D - 1), random.randint(0, D - 1)  
+    bot_start = (start_x, start_y)
+    ship[start_x][start_y], open_cells = 0, set()
+    blocked_one_window_cells = {(start_x, start_y)}
+    create_ship(ship, blocked_one_window_cells, open_cells)
+ 
+    # Populate open_cells
     for i in range(D):
         for j in range(D):
             if ship[i][j] == 0:
                 open_cells.add((i, j))
                 
+    # Open the starting cell bot_start
+    open_cells.remove(bot_start)
 
-    open_cells.remove((start_x, start_y))
+    # Initialize combination_probs, which contains the probability of a COMBINATION
+    # of cells containing leak1 and leak2, GIVEN all of the previous information.
+    # This would be P((L(x),L(y))|A) where:
+        # x and y are the combination of cells
+        # A is all of the given information, which is initially nothing
     combination_probs = {}
-    probArray = [[0 for i in range(D)] for j in range(D)]#probability array
-    equalProb = 1 / len(open_cells)#1 / open cells length is what all cells will have in the beginning
-    
-    #print("EqualProb", equalProb)
-    for i in range(D):
-        for j in range(D):
-            if ship[i][j] == 0:#if it is open cell and not equal to (start_x, start_y)
-                probArray[i][j] = equalProb
-    
-    probArray[start_x][start_y] = 0         
-    # print("Equal Prob: ", equalProb)
-    for i in range(D):
-        print(probArray[i])
-    print()
-    
-    for i in range(D):
-        print(ship[i])
-    print()
-   
-    # leak_cell = random.choice(list(open_cells))
+
+    # Initialize potential_leaks
     potential_leaks = open_cells.copy()
-    # print("Potential Leaks", potential_leaks)
-    leak_cell = random.choice(list(potential_leaks))
+
+    # Populate combination_probs by going through EVERY combination of cells in potential_leaks
+    for potential_cell1 in potential_leaks:
+        for potential_cell2 in potential_leaks:
+            # Create a set() to make sure the order of potential_cell1 and potential_cell2 does NOT matter
+            # This makes sure that (x,y) is recognized as (y,x)
+            cell_combination = set((potential_cell1, potential_cell2))
+            # Each value in combination_probs is initally the same at (1/(number of open cells))*(1/(number of open cells -1))
+            # This is the probability of (potential_cell1, potential_cell2) containing (leak1, leak2) 
+            combination_probs[(cell_combination)] = (1/len(open_cells)) * (1/(len(open_cells)-1))
+
+    # Initialize the leaks at random locations in the ship
+    leak_cell1 = random.choice(list(potential_leaks))
+    leak_cell2 = random.choice(list(potential_leaks))
     
+    # Compute the number of moves to reach the leak using move()
+    num_moves = move(ship, bot_start, leak_cell1, leak_cell2, potential_leaks, combination_probs)
 
-    num_moves = move(ship, start_x, start_y, leak_cell, potential_leaks, K, probArray)
-
+    # Return the number of moves the bot takes
     return num_moves
 
 
 if __name__ == '__main__':
     total_moves = 0
-    print(run_bot3())
+    print(run_bot8())
