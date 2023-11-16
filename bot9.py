@@ -101,7 +101,7 @@ A* search to make a path that avoids low-probability cells when determining a pa
 considering. This will affect num_moves since a more optimized path will effect the number of cells in the path 
 from the bot to the cell under consideration.
 '''
-def astar(ship, start_x, start_y, goal, combinationprobs):
+def astar(ship, start_x, start_y, goal, combinationprobs, potential_leaks):
     pq = []
 
     bot_position = (start_x, start_y)
@@ -137,11 +137,15 @@ def astar(ship, start_x, start_y, goal, combinationprobs):
 
                 temp_dist = distTo[curr_cell] + 1
 
+                marginal_prob = 0
+                for potential_cell in potential_leaks:
+                    marginal_prob = marginal_prob + combinationprobs[tuple({neighbor, potential_cell})]
+
                 if neighbor not in distTo or temp_dist < distTo[neighbor] or (nx, ny) not in combinationprobs:
                     print(combinationprobs[(nx, ny)])
                     distTo[neighbor] = temp_dist
                     parent[neighbor] = curr_cell
-                    prob_factor = D * combinationprobs[tuple({(nx, ny), (3,3)})]
+                    prob_factor = D * marginal_prob
                     heapq.heappush(pq, (distTo[neighbor] - prob_factor, neighbor))
             processed_cells.add(curr_cell)
     return None
