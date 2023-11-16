@@ -148,32 +148,24 @@ def bfs(ship, start_x, start_y, goal):
 
 
 # Calculates the probability of a beep from the bot's cell if a beep is heard
-def probIsBeep(ship, bot_x, bot_y, cellx, celly, potential_leaks, leak, prob_Array):
+def probIsBeep(ship, bot_x, bot_y, cellx, celly, potential_leaks, leak, prob_Array, prob_beep_in_i):
     d_steps = len(bfs(ship, bot_x, bot_y, (cellx, celly)))
 
     prob_leak_in_j = prob_Array[cellx][celly]
     prob_beep_in_a_given_leak_in_j = (math.e) ** ((-1) * alpha * (d_steps - 1))
-    prob_beep_in_i = 0.0
 
-    for (i, j) in potential_leaks:
-        d_steps = len(bfs(ship, bot_x, bot_y, (i, j)))
-        prob_beep_in_i += prob_Array[i][j] * (math.e ** ((-1) * alpha * (d_steps - 1)))
 
     prob = (prob_leak_in_j * prob_beep_in_a_given_leak_in_j) / prob_beep_in_i
     return prob
 
 
 # Calculates the probability of a beep from the bot's cell if a beep is not heard
-def probNoBeep(ship, bot_x, bot_y, cellx, celly, potential_leaks, leak, prob_Array):
+def probNoBeep(ship, bot_x, bot_y, cellx, celly, potential_leaks, leak, prob_Array, prob_no_beep_in_i):
     d_steps = len(bfs(ship, bot_x, bot_y, (cellx, celly)))
 
     prob_leak_in_j = prob_Array[cellx][celly]
     prob_not__beep_in_a_given_leak_in_j = (1 - (math.e ** ((-1) * alpha * (d_steps - 1))))
-    prob_no_beep_in_i = 0.0
 
-    for (i, j) in potential_leaks:
-        d_steps = len(bfs(ship, bot_x, bot_y, (i, j)))
-        prob_no_beep_in_i += prob_Array[i][j] * (1 - (math.e ** ((-1) * alpha * (d_steps - 1))))
 
     prob = (prob_leak_in_j * prob_not__beep_in_a_given_leak_in_j) / prob_no_beep_in_i
     return prob
@@ -189,6 +181,12 @@ def updateProb(ship, curr_x, curr_y, probArray, potential_leaks):
     return num / dem
 
 '''
+“Waits” for a beep. The necessary probability updates are done, based on the presence or absence of a beep. 
+The formulas for these updates are discussed explicitly in our writeup.
+At this point, probArray is updated so that it contains the probability of each cell containing the leak, given all 
+information regarding beeps and discovered cells not containing a leak. The way it is updated is through dividing the 
+current probability of the cell divided by adding all the probabilities of the potential leak cells. We do this to 
+every potential leak cell as we must update all cells.
 '''
 def detect(ship, curr_x, curr_y, leak, potential_leaks, prob_array):
     d_steps = len(bfs(ship, curr_x, curr_y, leak))
@@ -200,14 +198,21 @@ def detect(ship, curr_x, curr_y, leak, potential_leaks, prob_array):
         beep = True
     prob_array_sample = [[0 for i in range(D)] for j in range(D)]
 
+    prob_beep_in_i = 0
+
     if beep:
+        for (i, j) in potential_leaks:
+            d_steps = len(bfs(ship, curr_x, curr_y, (i, j)))
+            prob_beep_in_i += prob_array[i][j] * (math.e ** ((-1) * alpha * (d_steps - 1)))
         for (nx, ny) in potential_leaks:
-            prob_array_sample[nx][ny] = probIsBeep(ship, curr_x, curr_y, nx, ny, potential_leaks, leak, prob_array)
+            prob_array_sample[nx][ny] = probIsBeep(ship, curr_x, curr_y, nx, ny, potential_leaks, leak, prob_array, prob_beep_in_i)
     else:
+        for (i, j) in potential_leaks:
+            d_steps = len(bfs(ship, curr_x, curr_y, (i, j)))
+            prob_beep_in_i += prob_array[i][j] * (1-(math.e ** ((-1) * alpha * (d_steps - 1))))
         count = 0
         for (nx, ny) in potential_leaks:
-            print(count)
-            prob_array_sample[nx][ny] = probNoBeep(ship, curr_x, curr_y, nx, ny, potential_leaks, leak, prob_array)
+            prob_array_sample[nx][ny] = probNoBeep(ship, curr_x, curr_y, nx, ny, potential_leaks, leak, prob_array, prob_beep_in_i)
             count += 1
 
     for i in range(D):
@@ -216,6 +221,12 @@ def detect(ship, curr_x, curr_y, leak, potential_leaks, prob_array):
                 prob_array[i][j] = prob_array_sample[i][j]
 
 '''
+First compares if the current cell contains the leak. If so, the bot returns the number of moves required to reach the leak. 
+However, if the cell does not contain a leak, then the bot will update the probabilities using certain formulas
+(formulas mentioned explicitly in our writeup). In bot4, we used the astar() function which uses A*-search 
+(instead of BFS) to return the next destination cell. Using A*-search makes it more likely that the bot moves through 
+cells that have a higher probability of containing the leak, so that it is more likely that the bot finds a leak 
+while moving to the next destination cell. 
 '''
 def move(ship, curr_x, curr_y, leak, potential_leaks, prob_array):
     if (curr_x, curr_y) == leak:
@@ -277,7 +288,6 @@ def move(ship, curr_x, curr_y, leak, potential_leaks, prob_array):
             num_moves = num_moves + 1
 
 
-
 # Prints out the probability array
 def printProbArray(prob_array):
     _sum = 0
@@ -330,4 +340,6 @@ def run_bot4():
 
 if __name__ == '__main__':
     total_moves = 0
-    print(run_bot4())
+    for i in range(100):
+        print('Trial: ', i)
+        print(run_bot4())

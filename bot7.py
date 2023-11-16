@@ -8,7 +8,7 @@ from collections import deque
 import math
 
 DIRECTIONS = [0, 1, 0, -1, 0]
-D = 10
+D = 30
 alpha = 0.4
 
 
@@ -94,6 +94,10 @@ def bfs(ship, start_x, start_y, goal1):
     return None
 
 
+'''
+Performs a BFS implementation that returns the path starting from the bot's current location to the button
+We use this whenever astar is not used whenever are detecting the leak.
+'''
 def bfs_leak(ship, start_x, start_y, goal1, goal2):
     fringe = deque([(start_x, start_y)])
     closed_set = set()
@@ -119,36 +123,38 @@ def bfs_leak(ship, start_x, start_y, goal1, goal2):
     return None
 
 
-def probIsBeep(ship, bot_x, bot_y, cellx, celly, potential_leaks, prob_array):
+'''
+Calculates the probability board given that a beep has been detected
+'''
+def probIsBeep(ship, bot_x, bot_y, cellx, celly, potential_leaks, prob_array, prob_beep_in_i):
     d_steps = len(bfs(ship, bot_x, bot_y, (cellx, celly)))
 
     prob_leak_in_j = prob_array[cellx][celly]
     prob_beep_in_a_given_leak_in_j = (math.e) ** ((-1) * alpha * (d_steps - 1))
-    prob_beep_in_i = 0.0
 
-    for (i, j) in potential_leaks:
-        d_steps = len(bfs(ship, bot_x, bot_y, (i, j)))
-        prob_beep_in_i += prob_array[i][j] * (math.e ** ((-1) * alpha * (d_steps - 1)))
 
     prob = (prob_leak_in_j * prob_beep_in_a_given_leak_in_j) / prob_beep_in_i
     return prob
 
 
-def probNoBeep(ship, bot_x, bot_y, cell_x, cell_y, potential_leaks, prob_array):
+'''
+Calculates the probability board given that a beep has not been detected
+'''
+def probNoBeep(ship, bot_x, bot_y, cell_x, cell_y, potential_leaks, prob_array, prob_no_beep_in_i):
     d_steps = len(bfs(ship, bot_x, bot_y, (cell_x, cell_y)))
 
     prob_leak_in_j = prob_array[cell_x][cell_y]
     prob_not_beep_in_a_given_leak_in_j = (1 - (math.e ** ((-1) * alpha * (d_steps - 1))))
-    prob_no_beep_in_i = 0.0
 
-    for (i, j) in potential_leaks:
-        d_steps = len(bfs(ship, bot_x, bot_y, (i, j)))
-        prob_no_beep_in_i += prob_array[i][j] * (1 - (math.e ** ((-1) * alpha * (d_steps - 1))))
+
 
     prob = (prob_leak_in_j * prob_not_beep_in_a_given_leak_in_j) / prob_no_beep_in_i
     return prob
 
 
+'''
+Updates the probability board after calculating the respective values
+'''
 def updateProb(curr_x, curr_y, prob_array, potential_leaks):
     num = prob_array[curr_x][curr_y]
     dem = 0.0
@@ -158,6 +164,14 @@ def updateProb(curr_x, curr_y, prob_array, potential_leaks):
     return num/dem
 
 
+'''
+“Waits” for a beep. The necessary probability updates are done, based on the presence or absence of a beep. 
+The formulas for these updates are discussed explicitly in our writeup.
+At this point, probArray is updated so that it contains the probability of each cell containing the leak, given all 
+information regarding beeps and discovered cells not containing a leak. The way it is updated is through dividing the 
+current probability of the cell divided by adding all the probabilities of the potential leak cells. We do this to 
+every potential leak cell as we must update all cells. The calculations are the same as in Bot 3.
+'''
 def detect(ship, curr_x, curr_y, leak1, leak2, potential_leaks, prob_array):
     d_steps = len(bfs_leak(ship, curr_x, curr_y, leak1, leak2))
     prob_beep = (math.e) ** ((-1) * alpha * (d_steps - 1))
@@ -167,15 +181,22 @@ def detect(ship, curr_x, curr_y, leak1, leak2, potential_leaks, prob_array):
         beep = True
     prob_array_sample = [[0 for i in range(D)] for j in range(D)]
 
+    prob_beep_in_i = 0.0
+
     if beep:
+        for (i, j) in potential_leaks:
+            d_steps = len(bfs(ship, curr_x, curr_y, (i, j)))
+            prob_beep_in_i += prob_array[i][j] * (math.e ** ((-1) * alpha * (d_steps - 1)))
         for (nx, ny) in potential_leaks:
-            prob_array_sample[nx][ny] = probIsBeep(ship, curr_x, curr_y, nx, ny, potential_leaks, prob_array)
+            prob_array_sample[nx][ny] = probIsBeep(ship, curr_x, curr_y, nx, ny, potential_leaks, prob_array, prob_beep_in_i)
             if prob_array_sample[nx][ny] == 0:
                 potential_leaks.remove((nx, ny))
     else:
-
+        for (i, j) in potential_leaks:
+            d_steps = len(bfs(ship, curr_x, curr_y, (i, j)))
+            prob_beep_in_i += prob_array[i][j] * (1-(math.e ** ((-1) * alpha * (d_steps - 1))))
         for (nx, ny) in potential_leaks:
-            prob_array_sample[nx][ny] = probNoBeep(ship, curr_x, curr_y, nx, ny, potential_leaks, prob_array)
+            prob_array_sample[nx][ny] = probNoBeep(ship, curr_x, curr_y, nx, ny, potential_leaks, prob_array, prob_beep_in_i)
             if prob_array_sample[nx][ny] == 0:
                 potential_leaks.remove((nx, ny))
 
@@ -184,6 +205,9 @@ def detect(ship, curr_x, curr_y, leak1, leak2, potential_leaks, prob_array):
 
 
 '''
+First compares if the current cell contains the leak. If so, the bot returns the number of moves required to reach the leak. 
+However, if the cell does not contain a leak, then the bot will update the probabilities using certain formulas
+(formulas mentioned explicitly in our writeup).
 '''
 def move(ship, curr_x, curr_y, leak1, leak2, potential_leaks, prob_array):
     if (curr_x, curr_y) == leak1 or (curr_x, curr_y) == leak2:
@@ -241,6 +265,12 @@ def move(ship, curr_x, curr_y, leak1, leak2, potential_leaks, prob_array):
             num_moves = num_moves + 1
 
 
+'''
+Sets up the location of the robot's starting point, the button, the two leaks, and the ship itself. It first calls detect
+on the current location of the bot and then randomly assigns the location of the leak, just to ensure that the location 
+of the leak is not within the first sense action. It then runs the game for Bot 7. It returns the total number of moves 
+computed to find where the leak is.
+'''
 def run_bot7():
     ship = [[1 for i in range(D)] for j in range(D)]
     start_x, start_y = random.randint(0, D - 1), random.randint(0, D - 1)
@@ -268,6 +298,8 @@ def run_bot7():
 
 if __name__ == '__main__':
     total_moves = 0
-    for i in range(100):
+    for i in range(10):
         print("Trial: ", i)
-        print(run_bot7())
+        total_moves += run_bot7()
+
+    print(total_moves/10)
