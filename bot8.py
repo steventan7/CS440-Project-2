@@ -169,18 +169,58 @@ def bfs(ship, start_x, start_y, goal):
 #     return num/dem
 
 
-def updateProb(ship, curr_x, curr_y, probArray, potential_leaks):
-    # print("Prob", probArray[curr_x][curr_y])
-    num = probArray[curr_x][curr_y]
-    dem = 0.0
+# def updateProb(ship, curr_x, curr_y, probArray, potential_leaks):
+#     # print("Prob", probArray[curr_x][curr_y])
+#     num = probArray[curr_x][curr_y]
+#     dem = 0.0
     
-    for (i,j) in potential_leaks:
-        dem += probArray[i][j]
+#     for (i,j) in potential_leaks:
+#         dem += probArray[i][j]
                 
-    # print("Denominator", dem)
+#     # print("Denominator", dem)
     
    
-    return num/dem
+#     return num/dem
+
+
+# Parameters:
+    # potential_leaks -> set contaning cells that could have a leak
+    # combination_probs -> set containing probability of every combination of cells containing a leak
+def total_combinations_prob(combination_probs, potential_leaks):
+
+    # total_probability holds the cumulative sum of all of the probabilities in combination_probs
+    total_probability = 0
+
+    # In move(), we set the probability of the bot location cell to be 0. Hence, we now have to
+    # sum all of the probabilities in combination_probs to update the probabilities of all of the 
+    # other cells so they add up to 1. 
+    for potential_cell1 in potential_leaks:
+        for potential_cell2 in potential_leaks:
+            total_probability = total_probability + combination_probs[(potential_cell1, potential_cell2)]
+    
+    return total_probability
+
+# Parameters:
+    # potential_leaks -> set contaning cells that could have a leak
+    # combination_probs -> set containing probability of every combination of cells containing a leak
+def update_probability(potential_leaks, combination_probs):
+    # Create an empty compy of combination_probs to store temporary changes so that probability updates do NOT interfere with subsequent ones
+    combination_probs_temp = deepcopy(combination_probs)
+
+    # When we detect that there is no leak, we use the following formula:
+        # P(((L(i),L(j))|A)|no L(bot_position)) = P(((L(i),L(j))|A)/SUM[all cell combinations (x,y) in potential_leaks](P(((L(x),L(y))|A))
+        # We use total_combinations_prob() to calculate the denominator for this probability
+    sum_of_probabilities = total_combinations_prob(combination_probs, potential_leaks)
+    
+    # For every combination of cells in potential_leaks, apply the aforementioned formula
+    for potential_cell1 in potential_leaks:
+        for potential_cell2 in potential_leaks:
+            combination_probs_temp[(potential_cell1, potential_cell2)] = combination_probs_temp[(potential_cell1, potential_cell2)]/sum_of_probabilities
+    
+    # Update combination_probs to the values in combination_probs_sample
+    combination_probs = deepcopy(combination_probs_temp)
+
+    return combination_probs
 
 
 # Parameters: 
@@ -407,7 +447,7 @@ def denominator_prob_when_no_beep(ship, bot_position, potential_leaks, combinati
     # leak1 -> first leak cell
     # leak2 -> second leak cell
     # combination_probs -> set containing probability of every combination of cells containing a leak
-def detect(ship, bot_position, leak1, leak2, potential_leaks, K, combination_probs):
+def detect(ship, bot_position, leak1, leak2, potential_leaks, combination_probs):
 
     # Extract current bot positon
     (curr_x, curr_y) = bot_position
@@ -471,94 +511,85 @@ def move(ship, bot_position, leak1, leak2, potential_leaks, K, combination_probs
     # Iterate until a leak is found
     while True:
 
+        # Print the current bot location
         print("Currx, Curr_y: ",curr_x, curr_y)
 
         # Check if the current bot position contains any of the leaks
-        if (curr_x, curr_y) == leak1 or (curr_x, curr_y) == leak2:
+        if bot_position == leak1 or bot_position == leak2:
             return num_moves
         
+        # If the current bot position is not one of the leaks, do the following:
         else:
-            if probArray[curr_x][curr_y] != 0:
-                potential_leaks.remove((curr_x, curr_y))
+            # Remove the bot position from potential_leaks since it is no longer a leak
+            if bot_position in potential_leaks:
+                potential_leaks.remove(bot_position)
                 
-                probArray[curr_x][curr_y] = 0#We do this because if we don't find the leak cell, we set it to 0
-                # print(potential_leaks)
-                
-                #sum = 0.0
-                #ctr = 0
-                
-                probArraySample2 = [[0 for i in range(D)] for j in range(D)]
+                # probArray[curr_x][curr_y] = 0
 
-                for (nx,ny) in potential_leaks:
-                    probArraySample2[nx][ny] = updateProb(ship, nx, ny, probArray, potential_leaks)
-                    
-                    #sum += probArray[nx][ny]
-                    #ctr = ctr + 1
-                    # print(ctr)
-                for i in range(D):
-                    for j in range(D):
-                         if (i,j) in potential_leaks:
-                             probArray[i][j] = probArraySample2[i][j]
-                             
-                   
-       
-        sum = printProbArray(probArray)
-        print("Sum for updating", sum)
-        
-        probArray[curr_x][curr_y] = 0
-        detect(ship, curr_x, curr_y, leak, potential_leaks, K, probArray)
+                # Update combination_probs so that EVERY COMBINATION with bot_position has a probability of 0
+                for potential_other_cell in potential_leaks:
+                    combination_probs[(potential_other_cell, bot_position)] = 0
+
+                # Update combination_probs to make sure that all of the probabilities add up to 1 after the modification
+                combination_probs = update_probability(potential_leaks, combination_probs)
+
+                
+        # Call detect() which will simulate the beep 
+        detect(ship, bot_position, leak1, leak2, potential_leaks, combination_probs)
+
+        # Increment the number of moves by 1 since detect() counts as a move
         num_moves += 1
-        
-        # sum = printProbArray(probArray)
-        # print("Sum for updating", sum)
-        
-        sum = printProbArray(probArray)
-        print("Sum for beep", sum)
-        
-        _max = 0
-        
-        endX = 0
-        endY = 0
-        
-        for i in range(D):
-            for j in range(D):
-                if probArray[i][j] > _max:
-                    _max = probArray[i][j]
-                    endX = i
-                    endY = j
-                    
-        
 
-        path = bfs(ship, curr_x, curr_y, (endX,endY))
+        # Store the probability that corresponds to the cell that has the highest MARGINAL
+        # PROBABILITY in combination_probs  
+        max_cell_probability = 0
+        
+        # Store the coordinates of that cell in max_cell
+        max_cell = (0,0)
+
+        # Find the cell with the highest marginal probability in combination_probs
+        for potential_max_cell in potential_leaks:
+            marginal_probability = 0
+
+            for other_cell in potential_leaks:
+                marginal_probability = marginal_probability + combination_probs[(potential_max_cell, other_cell)]
+
+            if (marginal_probability > max_cell_probability):
+                max_cell_probability = marginal_probability
+                max_cell = potential_max_cell
+        
+        # Store the path from the bot to the determined cell
+        path = bfs(ship, curr_x, curr_y, max_cell)
         
         print("Path: ", path)
         
-        for (cellx,celly) in path:
+        # Perform the bot movement and check if any of the cells in the path contain the leak
+        for (cellx, celly) in path:
             
-
-            if curr_x == cellx and curr_y == celly:#ignore the beginning cell as we already updated
+            # If we return to the original bot position in the path, then go to the next position in the path
+            if curr_x == cellx and curr_y == celly:
                 continue
-            
-            probArraySample3 = [[0 for i in range(D)] for j in range(D)]
 
-            
-            if (cellx, celly) == leak:
+            # Check if the cell in the path contains either leak. If it does, return the number of moves
+            if (cellx, celly) == leak1 or (cellx, celly) == leak2:
                 return num_moves
             
-            else:
-
-                if probArray[cellx][celly] != 0:
-                    probArray[cellx][celly] = 0
+            # If not, remove the cell from potential_leaks and update the probability matrix using update_probability()
+            else: 
+                # Remove the cell from potential_leaks
+                if (cellx, celly) in potential_leaks:
                     potential_leaks.remove((cellx, celly))
                     curr_x = cellx
                     curr_y = celly
-                    for(i,j) in potential_leaks:
-                        probArraySample3[i][j] = updateProb(ship, i, j, probArray, potential_leaks)
-            
-                    for i in range(D):
-                        for j in range(D):
-                            probArray[i][j] = probArraySample3[i][j]
+
+                    # Update combination_probs so that EVERY COMBINATION with bot_position has a probability of 0
+                    for potential_other_cell in potential_leaks:
+                        combination_probs[(potential_other_cell, bot_position)] = 0
+
+                    # Update combination_probs to make sure that all of the probabilities add up to 1 after the modification
+                    combination_probs = update_probability(potential_leaks, combination_probs)
                     
+            # Update the number of moves
             num_moves = num_moves + 1
                 
                 
