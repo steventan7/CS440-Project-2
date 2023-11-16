@@ -298,8 +298,8 @@ def run_bot7():
 
 if __name__ == '__main__':
     total_moves = 0
-    for i in range(10):
+    for i in range(100):
         print("Trial: ", i)
         total_moves += run_bot7()
 
-    print(total_moves/10)
+    print(total_moves/100)

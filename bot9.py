@@ -11,7 +11,7 @@ import heapq
 
 
 DIRECTIONS = [0, 1, 0, -1, 0]
-D = 30
+D = 5
 alpha = 0.4
 
 
@@ -101,7 +101,7 @@ A* search to make a path that avoids low-probability cells when determining a pa
 considering. This will affect num_moves since a more optimized path will effect the number of cells in the path 
 from the bot to the cell under consideration.
 '''
-def astar(ship, start_x, start_y, goal, probArray):
+def astar(ship, start_x, start_y, goal, combinationprobs):
     pq = []
 
     bot_position = (start_x, start_y)
@@ -137,10 +137,11 @@ def astar(ship, start_x, start_y, goal, probArray):
 
                 temp_dist = distTo[curr_cell] + 1
 
-                if neighbor not in distTo or temp_dist < distTo[neighbor]:
+                if neighbor not in distTo or temp_dist < distTo[neighbor] or (nx, ny) not in combinationprobs:
+                    print(combinationprobs[(nx, ny)])
                     distTo[neighbor] = temp_dist
                     parent[neighbor] = curr_cell
-                    prob_factor = D*probArray[nx][ny]
+                    prob_factor = D * combinationprobs[tuple({(nx, ny), (3,3)})]
                     heapq.heappush(pq, (distTo[neighbor] - prob_factor, neighbor))
             processed_cells.add(curr_cell)
     return None
@@ -434,7 +435,7 @@ def move(ship, bot_position, leak1, leak2, potential_leaks, combination_probs):
                 max_cell = potential_max_cell
 
         # Store the path from the bot to the determined cell
-        path = astar(ship, curr_x, curr_y, (endX,endY), combination_probs)
+        path = astar(ship, curr_x, curr_y, potential_max_cell, combination_probs)
 
         # Perform the bot movement and check if any of the cells in the path contain the leak
         for (cellx, celly) in path:
@@ -465,7 +466,7 @@ def move(ship, bot_position, leak1, leak2, potential_leaks, combination_probs):
             num_moves = num_moves + 1
 
 
-def run_bot8():
+def run_bot9():
     ship = [[1 for i in range(D)] for j in range(D)]
     start_x, start_y = random.randint(0, D - 1), random.randint(0, D - 1)
     bot_start = (start_x, start_y)
@@ -511,6 +512,6 @@ if __name__ == '__main__':
     total_moves = 0
     for i in range(100):
         print("Trial: ", i)
-        total_moves += run_bot8()
+        total_moves += run_bot9()
 
 
