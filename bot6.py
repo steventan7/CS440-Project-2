@@ -1,6 +1,6 @@
 '''
-Implementation for Bot5
-@author Steven Tan
+Implementation for Bot6
+@author Yashas Ravi
 '''
 import random
 from colorama import init, Back, Style
@@ -8,7 +8,7 @@ from collections import deque, defaultdict
 init(autoreset=True)
 
 DIRECTIONS = [0, 1, 0, -1, 0]
-D = 10
+D = 30
 
 
 # This function checks if a cell has exactly one open neighbor
@@ -197,9 +197,6 @@ def simulate (ship, start_x, start_y, leak1, leak2, potential_leaks, K):
         potential_leaks, leak_detected = detect(ship, curr_location[0], curr_location[1], leak1, leak2, potential_leaks, K)
         num_moves += 1
 
-        # visualize_grid(ship, curr_location, leak1, leak2, curr_location)
-        # check = input()
-
         if not leak_detected:
             distance_map = closest_moves_leak_not_found(ship, curr_location[0], curr_location[1], potential_leaks, K)
         else:
@@ -209,11 +206,10 @@ def simulate (ship, start_x, start_y, leak1, leak2, potential_leaks, K):
 
         next_location = random.choice(closest_moves) if len(closest_moves) > 1 else closest_moves[0]
 
-        while (len(closest_moves) > 1 and (next_location[0] + K >= D or next_location[0] - K < 0 or next_location[1] + K >= D or next_location[1] - K < 0)):
+        while (len(closest_moves) > 1 and (next_location[0] + K >= D or next_location[0] - K < 0 or next_location[1] +
+                K >= D or next_location[1] - K < 0)):
                 closest_moves.remove(next_location)
                 next_location = random.choice(closest_moves)
-
-        print(next_location)
 
         num_moves += bfs(ship, next_location[0], next_location[1], curr_location)
         curr_location = next_location

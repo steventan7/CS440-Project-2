@@ -8,7 +8,7 @@ from collections import deque, defaultdict
 init(autoreset=True)
 
 DIRECTIONS = [0, 1, 0, -1, 0]
-D = 50
+D = 30
 
 
 # This function checks if a cell has exactly one open neighbor
@@ -181,7 +181,6 @@ determine the cells closest to the current location of the bot that could potent
     - Algorithm iterates through cells in the detection square to find the closest cell in potential_cells.
     - Instead of removing the cells outside the detection square from potential_leaks and then checking potential_leaks,
       we only check if cells INSIDE the detection square are in potential_leaks so NO cell removal is required.
-
 '''
 def closest_moves_leak_found(ship, curr_x, curr_y, potential_leaks, K):
     distance_map = defaultdict(list)
@@ -195,6 +194,9 @@ def closest_moves_leak_found(ship, curr_x, curr_y, potential_leaks, K):
     return distance_map
 
 
+'''
+If a leak has been sensed, the distance to the leak is returned using BFS. Else, nothing is returned.
+'''
 def distance_to_leak_if_found(ship, curr_x, curr_y, potential_leaks, K, leak):
     leak_location = None
     for r in range(curr_x - K, curr_x + K + 1):
@@ -227,9 +229,6 @@ def simulate (ship, start_x, start_y, leak, potential_leaks, K):
         potential_leaks, leak_detected = detect(ship, curr_location[0], curr_location[1], leak, potential_leaks, K)
         num_moves += 1
 
-        # visualize_grid(ship, curr_location, leak, curr_location)
-        # check = input()
-
         if not leak_detected:
             distance_map = closest_moves_leak_not_found(ship, curr_location[0], curr_location[1], potential_leaks, K)
         else:
@@ -247,8 +246,6 @@ def simulate (ship, start_x, start_y, leak, potential_leaks, K):
         while (len(closest_moves) > 1 and (next_location[0] + K >= D or next_location[0] - K < 0 or next_location[1] + K >= D or next_location[1] - K < 0)):
                 closest_moves.remove(next_location)
                 next_location = random.choice(closest_moves)
-
-        print(next_location)
 
         num_moves += bfs(ship, next_location[0], next_location[1], curr_location)
         curr_location = next_location
@@ -269,9 +266,6 @@ def run_bot2():
     create_ship(ship, blocked_one_window_cells, open_cells)
 
     K = ((D // 2 - 1) + 1) // 2
-    print("K is ")
-    print(K)
-    print("____________")
     potential_leaks = open_cells.copy()
     detect(ship, start_x, start_y, (-1, -1), potential_leaks, K)
     leak_cell = random.choice(list(potential_leaks))
@@ -281,7 +275,7 @@ def run_bot2():
 
 if __name__ == '__main__':
     total_moves = 0
-    for i in range(20):
+    for i in range(100):
         print("Trial", i, "completed")
         total_moves += run_bot2()
-    print(total_moves / 20)
+    print(total_moves / 100)

@@ -8,7 +8,7 @@ from collections import deque, defaultdict
 init(autoreset=True)
 
 DIRECTIONS = [0, 1, 0, -1, 0]
-D = 50
+D = 30
 
 
 # This function checks if a cell has exactly one open neighbor
@@ -228,10 +228,7 @@ def run_bot1():
     blocked_one_window_cells = {(start_x, start_y)}
     create_ship(ship, blocked_one_window_cells, open_cells)
 
-    K = ((D // 2 - 1) + 1) // 2
-    print("K is ")
-    print(K)
-    print("____________")
+    K = 2
     potential_leaks = open_cells.copy()
     detect(ship, start_x, start_y, (-1, -1), potential_leaks, K)
     leak_cell = random.choice(list(potential_leaks))
@@ -242,6 +239,8 @@ def run_bot1():
 if __name__ == '__main__':
     total_moves = 0
     for i in range(100):
-        print("Trial", i, "completed")
+        print("Trial", i + 1 , "completed")
+        x = run_bot1()
         total_moves += run_bot1()
+        print(x)
     print(total_moves / 100)
