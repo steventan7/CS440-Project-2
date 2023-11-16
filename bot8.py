@@ -111,77 +111,6 @@ def bfs(ship, start_x, start_y, goal):
             closed_set.add((nx, ny))
         closed_set.add((curr_x, curr_y))
     return None
-    
-# PROBABILITY GIVEN THAT WE GOT A BEEP
-# def probIsBeep(ship, bot_x, bot_y, cellx, celly, potential_leaks, leak, probArray):#probability that leak in j given that beep in cell i
-#     # alpha = random.uniform(0,1)#returns a float between 0 and 1(T.A. said it must be between 0 and 1)
-    
-#     # dsteps = minStepsBot(bot_x, bot_y, cellx, celly)#dsteps
-#     dsteps = len(bfs(ship, bot_x, bot_y, (cellx,celly)))
-#     # print("Dsteps", dsteps)
-#     probLeakinJ = probArray[cellx][celly]
-#     probbeepinigivenleakinj = (math.e) ** ((-1)*alpha*(dsteps-1))
-#     probbeepini = 0.0
-#     for i in range(D):
-#         for j in range(D):
-#             if (i,j) in potential_leaks:
-#                 # dsteps = minStepsBot(bot_x, bot_y, i,j)
-#                 dsteps = len(bfs(ship, bot_x, bot_y, (i,j)))
-#                 probbeepini += probArray[i][j] * (math.e ** ((-1)*alpha*(dsteps-1)))
-    
-#     prob = (probLeakinJ*probbeepinigivenleakinj) / probbeepini
-#     return prob
-
-# PROBABILITY GIVEN THAT WE DID NOT GET A BEEP
-# def probNoBeep(ship, bot_x, bot_y, cellx, celly, potential_leaks, leak, probArray):#probability that leak in j given that no beep in cell i
-#     # alpha = random.uniform(0,1)#returns a float between 0 and 1(T.A. said it must be between 0 and 1)
-#     dsteps = len(bfs(ship, bot_x, bot_y, (cellx,celly)))
-    
-#     probLeakinJ = probArray[cellx][celly]
-#     probnotBeepinigivenleakincellj = (1-(math.e ** ((-1)*alpha*(dsteps-1))))
-    
-    
-#     probnoBeepini = 0.0
-    
-    
-#     for i in range(D):
-#         for j in range(D):
-#             if (i,j) in potential_leaks:
-#                 dsteps = len(bfs(ship, bot_x, bot_y, (i,j)))
-#                 probnoBeepini += probArray[i][j] * (1-(math.e ** ((-1)*alpha*(dsteps-1))))
-    
-    
-#     prob = (probLeakinJ*probnotBeepinigivenleakincellj) / probnoBeepini
-#     return prob
-    
-# PROBABILITY GIVEN THAT CURRENT CELL DOES NOT HAVE A LEAK
-# def updateProb(ship, curr_x, curr_y, probArray, potential_leaks):
-#     # print("Prob", probArray[curr_x][curr_y])
-#     num = probArray[curr_x][curr_y]
-#     dem = 0.0
-    
-#     for (i,j) in potential_leaks:
-#         dem += probArray[i][j]
-                
-#     # print("Denominator", dem)
-    
-   
-#     return num/dem
-
-
-# def updateProb(ship, curr_x, curr_y, probArray, potential_leaks):
-#     # print("Prob", probArray[curr_x][curr_y])
-#     num = probArray[curr_x][curr_y]
-#     dem = 0.0
-    
-#     for (i,j) in potential_leaks:
-#         dem += probArray[i][j]
-                
-#     # print("Denominator", dem)
-    
-   
-#     return num/dem
-
 
 # Parameters:
     # potential_leaks -> set contaning cells that could have a leak
@@ -398,46 +327,6 @@ def denominator_prob_when_no_beep(ship, bot_position, potential_leaks, combinati
     # We return the denominator
     return denominator
 
-# def detect(ship, curr_x, curr_y, leak, potential_leaks, K, probArray):
-#     #returns a float between 0 and 1(T.A. said it must be between 0 and 1)
-    
-#     # dsteps = minStepsLeak(ship, curr_x, curr_y, leak)#dsteps
-#     dsteps = len(bfs(ship, curr_x, curr_y, leak))
-#     # probBeep = 0.0
-#     # for i in range(D):
-#     #     for j in range(D):
-#     #         if (i,j) in potential_leaks:
-#     #             dsteps = minStepsBot(curr_x, curr_y, i,j)
-#     #             probBeep += probArray[i][j] * (math.e ** ((-1)*alpha*(dsteps-1)))
-                
-                
-#     probBeep = (math.e) ** ((-1)*alpha*(dsteps-1))#probability for beep
-#     num = random.uniform(0,1)
-    
-#     beep = False
-    
-#     if num <= probBeep:
-#         beep = True
-        
-#     probArraySample = [[0 for i in range(D)] for j in range(D)]
-    
-    
-#     if beep:#Probability of Leak Given that there is a beep
-#         print("Beep")
-#         for (nx, ny) in potential_leaks:
-#             probArraySample[nx][ny] = probIsBeep(ship, curr_x, curr_y, nx,ny,potential_leaks, leak, probArray)
-            
-            
-#     else:#Probability of Leak Given that there is not a beep
-#         print("No beep")
-#         for (nx, ny) in potential_leaks:
-#             probArraySample[nx][ny] = probNoBeep(ship, curr_x, curr_y, nx, ny, potential_leaks, leak, probArray)
-
-#     for i in range(D):
-#         for j in range(D):
-#             if (i,j) in potential_leaks:
-#                 probArray[i][j] = probArraySample[i][j]
-
 # Parameters:
     # ship -> matrix of cells
     # bot_position = (bot_x, bot_y) -> bot position
@@ -523,8 +412,6 @@ def move(ship, bot_position, leak1, leak2, potential_leaks, combination_probs):
             # Remove the bot position from potential_leaks since it is no longer a leak
             if bot_position in potential_leaks:
                 potential_leaks.remove(bot_position)
-                
-                # probArray[curr_x][curr_y] = 0
 
                 # Update combination_probs so that EVERY COMBINATION with bot_position has a probability of 0
                 for potential_other_cell in potential_leaks:
@@ -595,71 +482,9 @@ def move(ship, bot_position, leak1, leak2, potential_leaks, combination_probs):
                     
             # Update the number of moves
             num_moves = num_moves + 1
-                
-                
-        # tempSet = set()
-        # for i in range(4):
-        #     nx, ny = DIRECTIONS[i] + curr_x, DIRECTIONS[i+1] + curr_y
-            
-        #     if nx in [-1, D] or ny in [-1, D] or ship[nx][ny] != 0:
-        #         continue
-            
-        #     tempSet.add((nx,ny))
-        
-        # _max = -1
-        
-        # isAll0 = True
-        # for (nx,ny) in tempSet: 
-        #     if probArray[nx][ny] != 0:
-        #         isAll0 = False
-        
-        # # print("Before")
-        # # printProbArray(probArray)
-        
-        # if isAll0:
-        #     # print("Temp", tempSet)
-        #     # print(isAll0)
-
-        #     nx,ny = random.choice(list(tempSet))
-        #     curr_x = nx
-        #     curr_y = ny
-        
-            
-        
-        # else:   
-        #     for (nx,ny) in tempSet:
-        #         if probArray[nx][ny] > _max and (nx,ny) not in visited_cells:
-        #             _max = probArray[nx][ny]
-        #             curr_x = nx
-        #             curr_y = ny
-                
-        # print("After")
-        # printProbArray(probArray)
-
-        
-        
-        
-
-def printProbArray(probArray):
-    _sum = 0
-    # for i in range(len(probArray)):
-    #     print(probArray[i])
-        
-    for i in range(len(probArray)):
-        for j in range(len(probArray)):
-            print((i,j), probArray[i][j])
-    
-    for i in range(len(probArray)):
-        for j in range(len(probArray[i])):
-            _sum += probArray[i][j]
-            
-    return _sum
         
 
 def run_bot8():
-
-    # Initialize the ship
-    # ship = [[1,1,0,0,0], [0,0,0,0,0], [0,1,0,0,1], [0,0,0,0,0], [0,0,0,0,0]]
 
     # Initialize the ship
     ship = [[1 for i in range(D)] for j in range(D)]
@@ -696,7 +521,7 @@ def run_bot8():
             cell_combination = set((potential_cell1, potential_cell2))
             # Each value in combination_probs is initally the same at (1/(number of open cells))*(1/(number of open cells -1))
             # This is the probability of (potential_cell1, potential_cell2) containing (leak1, leak2) 
-            combination_probs[(cell_combination)] = (1/len(open_cells)) * (1/(len(open_cells)-1))
+            combination_probs[cell_combination] = (1/len(open_cells)) * (1/(len(open_cells)-1))
 
     # Initialize the leaks at random locations in the ship
     leak_cell1 = random.choice(list(potential_leaks))
